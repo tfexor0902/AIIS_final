@@ -1,2 +1,9 @@
 # AIIS_final
-This is the profile for the Artificial Intelligent and Information Service
+人工智慧與資訊服務期末作品
+
+安裝說明：
+請使用apps script作為主要執行的端點
+
+本次期末共分2個部分：
+1. 由捷徑寫入
+2. 使用html輸出現有的資料
