@@ -24,6 +24,8 @@
 
 在試算表上方工具列點選 「擴充功能」 > 「Apps Script」。
 
+打開files中的app資料夾，分別將js html檔案等下載或複製
+
 填入後端邏輯：將預設的 Code.gs 內容全部清空，並貼上你的 Code.gs.js 程式碼。
 
 更換試算表 ID：在 Code.gs 內找到 SpreadsheetApp.openById('...')，將括號內貼上你剛剛複製的個人試算表 ID。
