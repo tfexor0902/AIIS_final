@@ -1,1 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    
+    <?!= include('CSS'); ?>
+  </head>
+  <body>
+    <div id="loading">
+      <div class="spinner"></div>
+      <div style="font-size:15px; color:#555;">數據統計中，請稍候...</div>
+    </div>
+
+    <div id="mainContent" style="display: none;">
+      <div class="budget-card">
+        <div class="budget-grid">
+          <div class="budget-item">
+            <div class="budget-label">🎯 本月總預算</div>
+            <div class="budget-value" id="textBudget">$0</div>
+          </div>
+          <div class="budget-item" style="border-left: 1px solid #eee; border-right: 1px solid #eee;">
+            <div class="budget-label">💸 目前已花費</div>
+            <div class="budget-value" id="textExpense">$0</div>
+          </div>
+          <div class="budget-item" id="remainingBox" style="color: #27ae60;">
+            <div class="budget-label" id="remainingLabel">💰 剩餘可用額度</div>
+            <div class="budget-value" id="textRemaining">$0</div>
+          </div>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressBarFill"></div>
+        </div>
+      </div>
+
+      <div id="budgetEditArea" style="margin-top: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <button onclick="toggleBudgetInput()"
+          style="font-size:13px; padding:5px 12px; border:1px solid #1a73e8; border-radius:20px; background:white; color:#1a73e8; cursor:pointer;">
+          ✏️ 更新預算
+        </button>
+        <div id="budgetInputRow" style="display:none; align-items:center; gap:6px;">
+          <input id="budgetInput" type="number" placeholder="輸入新預算金額"
+            style="padding:5px 10px; border:1px solid #ccc; border-radius:6px; font-size:14px; width:160px;" />
+          <button onclick="submitBudget()"
+            style="padding:5px 14px; background:#1a73e8; color:white; border:none; border-radius:6px; cursor:pointer; font-size:13px;">
+            確認
+          </button>
+          <button onclick="toggleBudgetInput()"
+            style="padding:5px 10px; background:#eee; color:#555; border:none; border-radius:6px; cursor:pointer; font-size:13px;">
+            取消
+          </button>
+        </div>
+        <span id="budgetMsg" style="font-size:13px; color:#27ae60;"></span>
+      </div>
+
+      <div class="search-area">
+        <div class="search-wrapper">
+          <span class="search-icon">🔍</span>
+          <input
+            id="searchInput"
+            class="search-input"
+            type="text"
+            placeholder="搜尋類別、項目、日期或星期..."
+            oninput="searchRecords()"
+          />
+          <button id="searchClearBtn" class="search-clear-btn" onclick="clearSearch()">✕</button>
+        </div>
+        <button onclick="showAllDetails()"
+          style="font-size:13px; padding:6px 14px; border:1.5px solid #aaa; border-radius:20px; background:white; color:#555; cursor:pointer; white-space:nowrap; transition: border-color 0.2s, color 0.2s;"
+          onmouseover="this.style.borderColor='#1a73e8';this.style.color='#1a73e8';"
+          onmouseout="this.style.borderColor='#aaa';this.style.color='#555';">
+          📋 顯示全部
+        </button>
+      </div>
+
+      <div class="tab-container">
+        <button id="categoryBtn" class="tab-btn" onclick="switchTab('category')">🍔 分類比例</button>
+        <button id="dateBtn" class="tab-btn" onclick="switchTab('date')">📅 日期趨勢</button>
+        <button id="weekBtn" class="tab-btn" onclick="switchTab('week')">📊 星期分佈</button>
+      </div>
+
+      <div class="chart-box">
+        <div id="piechart_div" style="width: 100%; height: 100%;"></div>
+        <div id="linechart_div" style="width: 100%; height: 100%; display: none;"></div>
+        <div id="weekchart_div" style="width: 100%; height: 100%; display: none;"></div>
+      </div>
+
+      <div id="detailTableContainer" class="detail-container">
+        <div id="detailTitle" class="detail-title">📋 消費細項</div>
+        <div id="detail_table_div"></div>
+      </div>
+    </div>
+
+    <?!= include('JS'); ?>
+  </body>
+</html>
 
