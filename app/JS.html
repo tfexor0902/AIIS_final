@@ -1,454 +1,462 @@
 <script type="text/javascript">
-  google.charts.load('current', {'packages':['corechart']});
-  google.charts.setOnLoadCallback(loadAllData);
+       google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(loadAllData);
 
-  const WEEK_NAMES = ["星期日","星期一","星期二","星期三","星期四","星期五","星期六"];
+      const WEEK_NAMES = ["星期日","星期一","星期二","星期三","星期四","星期五","星期六"];
 
-  let chartDataPayload = null;
-  let rawData = [];         
-  let enrichedData = [];    
+      let chartDataPayload = null;
+      let rawData = [];         
+      let enrichedData = [];    
 
-  function dateToWeekName(dateStr) {
-    if (!dateStr || dateStr === '—') return '';
-    const d = new Date(dateStr.replace(/\//g, '-'));
-    if (isNaN(d.getTime())) return '';
-    return WEEK_NAMES[d.getDay()];
-  }
+      function dateToWeekName(dateStr) {
+        if (!dateStr || dateStr === '—') return '';
+        const d = new Date(dateStr.replace(/\//g, '-'));
+        if (isNaN(d.getTime())) return '';
+        return WEEK_NAMES[d.getDay()];
+      }
 
-  function loadAllData() {
-    google.script.run
-      .withSuccessHandler(function(allData) {
-        chartDataPayload = allData;
-        rawData = allData.rawData || [];
+      function loadAllData() {
+        google.script.run
+          .withSuccessHandler(function(allData) {
+            chartDataPayload = allData;
+            rawData = allData.rawData || [];
 
-        enrichedData = [];
-        for (let i = 1; i < rawData.length; i++) {
-          const category = rawData[i][0] ? rawData[i][0].toString() : '';
-          const item     = rawData[i][1] ? rawData[i][1].toString() : '';
-          const amount   = rawData[i][2];
-          const date     = rawData[i][3] ? rawData[i][3].toString() : '';
-          const weekName = dateToWeekName(date);
-          enrichedData.push({ category, item, amount, date, weekName });
-        }
+            enrichedData = [];
+            for (let i = 1; i < rawData.length; i++) {
+              const category = rawData[i][0] ? rawData[i][0].toString() : '';
+              const item     = rawData[i][1] ? rawData[i][1].toString() : '';
+              const amount   = rawData[i][2];
+              const date     = rawData[i][3] ? rawData[i][3].toString() : '';
+              const weekName = dateToWeekName(date);
+              enrichedData.push({ category, item, amount, date, weekName });
+            }
 
-        if (!chartDataPayload || chartDataPayload.categoryData.length <= 1) {
-          document.getElementById('loading').innerHTML = "<div style='color:#777;'>目前還沒有記帳數據喔！</div>";
-          return;
-        }
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('mainContent').style.display = 'block';
-        renderBudgetCard(chartDataPayload.budgetInfo);
-        switchTab('category');
-      })
-      .withFailureHandler(function(error) {
-        document.getElementById('loading').innerHTML = "<div style='color:#d93025;'>載入失敗: " + error.message + "</div>";
-      })
-      .getChartData();
-  }
-
-  function renderBudgetCard(info) {
-    const budget = info.budget;
-    const expense = info.totalExpense;
-    const remaining = budget - expense;
-    let percent = info.usePercent;
-    if (percent > 100) percent = 100;
-
-    document.getElementById('textBudget').innerText = '$' + budget.toLocaleString();
-    document.getElementById('textExpense').innerText = '$' + expense.toLocaleString();
-
-    if (remaining < 0) {
-      document.getElementById('remainingBox').style.color = '#d93025';
-      document.getElementById('remainingLabel').innerText = '已透支金額';
-      document.getElementById('textRemaining').innerText = '$' + Math.abs(remaining).toLocaleString();
-    } else {
-      document.getElementById('remainingBox').style.color = '';
-      document.getElementById('remainingLabel').innerText = '剩餘預算';
-      document.getElementById('textRemaining').innerText = '$' + remaining.toLocaleString();
-    }
-
-    const progressBar = document.getElementById('progressBarFill');
-    progressBar.style.width = percent + '%';
-    if (percent >= 90) {
-      progressBar.style.backgroundColor = '#d93025';
-    } else if (percent >= 70) {
-      progressBar.style.backgroundColor = '#f2994a';
-    } else {
-      progressBar.style.backgroundColor = '#27ae60';
-    }
-  }
-
-  function switchTab(type) {
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.getElementById(type + 'Btn').classList.add('active');
-
-    document.getElementById('piechart_div').style.display = 'none';
-    document.getElementById('linechart_div').style.display = 'none';
-    document.getElementById('weekchart_div').style.display = 'none';
-    document.getElementById('detailTableContainer').style.display = 'none';
-
-    document.getElementById('searchInput').value = '';
-    document.getElementById('searchClearBtn').style.display = 'none';
-
-    if (type === 'category') {
-      document.getElementById('piechart_div').style.display = 'block';
-      var data = google.visualization.arrayToDataTable(chartDataPayload.categoryData);
-      var options = {
-        title: '各類別支出比例 (點擊圓餅區塊可查看消費明細)',
-        is3D: true,
-        chartArea: { width: '90%', height: '80%' }
-      };
-      var chart = new google.visualization.PieChart(document.getElementById('piechart_div'));
-      google.visualization.events.addListener(chart, 'select', function() {
-        var selectedItem = chart.getSelection()[0];
-        if (selectedItem && selectedItem.row !== null && selectedItem.row !== undefined) {
-          var categoryName = data.getValue(selectedItem.row, 0);
-          showCategoryDetails(categoryName);
-        }
-      });
-      chart.draw(data, options);
-
-    } else if (type === 'date') {
-      document.getElementById('linechart_div').style.display = 'block';
-      var data = google.visualization.arrayToDataTable(chartDataPayload.dateData);
-      var options = {
-        title: '每日花費趨勢 (點擊藍色節點可查看當日消費明細)',
-        curveType: 'function',
-        pointsVisible: true,
-        chartArea: { width: '85%', height: '70%' }
-      };
-      var chart = new google.visualization.LineChart(document.getElementById('linechart_div'));
-      google.visualization.events.addListener(chart, 'select', function() {
-        var selectedItem = chart.getSelection()[0];
-        if (selectedItem && selectedItem.row !== null && selectedItem.row !== undefined) {
-          var dateStr = data.getValue(selectedItem.row, 0);
-          showDateDetails(dateStr);
-        }
-      });
-      chart.draw(data, options);
-
-    } else if (type === 'week') {
-      document.getElementById('weekchart_div').style.display = 'block';
-      var data = google.visualization.arrayToDataTable(chartDataPayload.weekData);
-      var options = {
-        title: '各星期平均花費分佈 (點擊長條柱可查看該星期歷史明細)',
-        legend: { position: 'none' },
-        chartArea: { width: '85%', height: '70%' },
-        vAxis: { title: '平均支出金額 (元)' }
-      };
-      var chart = new google.visualization.ColumnChart(document.getElementById('weekchart_div'));
-      google.visualization.events.addListener(chart, 'select', function() {
-        var selectedItem = chart.getSelection()[0];
-        if (selectedItem && selectedItem.row !== null && selectedItem.row !== undefined) {
-          var weekName = data.getValue(selectedItem.row, 0);
-          showWeekDetails(weekName);
-        }
-      });
-      chart.draw(data, options);
-    }
-  }
-
-  let currentDetailRows = [];
-  let currentDetailType = '';   
-  let sortState = { key: 'date', dir: 'desc' };
-
-  function sortAndRenderDetail() {
-    const rows = [...currentDetailRows];
-    const { key, dir } = sortState;
-
-    rows.sort((a, b) => {
-      let va = key === 'date' ? new Date(a.date) : a.amount;
-      let vb = key === 'date' ? new Date(b.date) : b.amount;
-      return dir === 'desc' ? vb - va : va - vb;
-    });
-
-    const subtotal = rows.reduce((s, r) => s + r.amount, 0);
-    const tableEl = document.getElementById('detail_table_div');
-
-    let html = '<table class="detail-table"><thead><tr>';
-    html += '<th>#</th>';
-
-    if (currentDetailType === 'category') {
-      html += sortableHeader('日期', 'date');
-      html += '<th>消費項目</th>';
-      html += sortableHeader('金額', 'amount');
-      html += '</tr></thead><tbody>';
-      rows.forEach((r, idx) => {
-        html += `<tr>
-          <td class="num">${idx+1}</td>
-          <td>${r.date}<span class="week-tag">${r.weekName}</span></td>
-          <td>${escapeHtml(r.item)}</td>
-          <td class="amount">$${r.amount.toLocaleString()}</td>
-        </tr>`;
-      });
-      html += `</tbody><tfoot><tr>
-        <td colspan="3" class="subtotal-label">該類別累積小計</td>
-        <td class="amount subtotal-val">$${subtotal.toLocaleString()}</td>
-      </tr></tfoot>`;
-
-    } else if (currentDetailType === 'date') {
-      html += '<th>消費類別</th><th>消費項目</th>';
-      html += sortableHeader('金額', 'amount');
-      html += '</tr></thead><tbody>';
-      rows.forEach((r, idx) => {
-        html += `<tr>
-          <td class="num">${idx+1}</td>
-          <td><span class="cat-tag">${escapeHtml(r.category)}</span></td>
-          <td>${escapeHtml(r.item)}</td>
-          <td class="amount">$${r.amount.toLocaleString()}</td>
-        </tr>`;
-      });
-      html += `</tbody><tfoot><tr>
-        <td colspan="3" class="subtotal-label">當日花費小計</td>
-        <td class="amount subtotal-val">$${subtotal.toLocaleString()}</td>
-      </tr></tfoot>`;
-
-    } else if (currentDetailType === 'week') {
-      html += sortableHeader('日期', 'date');
-      html += '<th>消費類別</th><th>消費項目</th>';
-      html += sortableHeader('金額', 'amount');
-      html += '</tr></thead><tbody>';
-      rows.forEach((r, idx) => {
-        html += `<tr>
-          <td class="num">${idx+1}</td>
-          <td>${r.date}<span class="week-tag">${r.weekName}</span></td>
-          <td><span class="cat-tag">${escapeHtml(r.category)}</span></td>
-          <td>${escapeHtml(r.item)}</td>
-          <td class="amount">$${r.amount.toLocaleString()}</td>
-        </tr>`;
-      });
-      html += `</tbody><tfoot><tr>
-        <td colspan="4" class="subtotal-label">歷史累積總花費</td>
-        <td class="amount subtotal-val">$${subtotal.toLocaleString()}</td>
-      </tr></tfoot>`;
-
-    } else {
-      html += sortableHeader('日期', 'date');
-      html += '<th>消費類別</th><th>消費項目</th>';
-      html += sortableHeader('金額', 'amount');
-      html += '</tr></thead><tbody>';
-      rows.forEach((r, idx) => {
-        html += `<tr>
-          <td class="num">${idx+1}</td>
-          <td>${r.date}<span class="week-tag">${r.weekName}</span></td>
-          <td><span class="cat-tag">${escapeHtml(r.category)}</span></td>
-          <td>${escapeHtml(r.item)}</td>
-          <td class="amount">$${r.amount.toLocaleString()}</td>
-        </tr>`;
-      });
-      html += `</tbody><tfoot><tr>
-        <td colspan="4" class="subtotal-label">搜尋結果小計（共 ${rows.length} 筆）</td>
-        <td class="amount subtotal-val">$${subtotal.toLocaleString()}</td>
-      </tr></tfoot>`;
-    }
-
-    html += '</table>';
-    tableEl.innerHTML = html;
-  }
-
-  function sortableHeader(label, key) {
-    const active = sortState.key === key;
-    const arrow = active ? (sortState.dir === 'desc' ? ' ▼' : ' ▲') : ' ⇅';
-    const style = active ? 'color:#1a73e8; cursor:pointer; user-select:none; white-space:nowrap;'
-                         : 'cursor:pointer; user-select:none; white-space:nowrap; color:#5a8dee;';
-    return `<th style="${style}" onclick="toggleSort('${key}')">${label}<span style="font-size:11px;">${arrow}</span></th>`;
-  }
-
-  function toggleSort(key) {
-    if (sortState.key === key) {
-      sortState.dir = sortState.dir === 'desc' ? 'asc' : 'desc';
-    } else {
-      sortState.key = key;
-      sortState.dir = 'desc';
-    }
-    sortAndRenderDetail();
-  }
-
-  function showDetailContainer(title) {
-    const container = document.getElementById('detailTableContainer');
-    document.getElementById('detailTitle').innerText = title;
-    container.style.display = 'block';
-    container.scrollIntoView({ behavior: 'smooth' });
-  }
-
-  function showCategoryDetails(category) {
-    if (!enrichedData.length) {
-      document.getElementById('detail_table_div').innerHTML = "<div class='no-data'>⚠️ 目前無可用明細，請重新整理頁面。</div>";
-      document.getElementById('detailTableContainer').style.display = 'block';
-      return;
-    }
-    currentDetailType = 'category';
-    sortState = { key: 'date', dir: 'desc' };
-    currentDetailRows = enrichedData.filter(r => r.category === category);
-    showDetailContainer('🍔 包含「' + category + '」的消費細項：');
-    sortAndRenderDetail();
-  }
-
-  function showDateDetails(dateStr) {
-    currentDetailType = 'date';
-    sortState = { key: 'amount', dir: 'desc' };
-    showDetailContainer('📅 包含「' + dateStr + '」的消費細項：');
-    document.getElementById('detail_table_div').innerHTML = "<div class='no-data'>🔄 正在即時抓取「" + dateStr + "」的明細，請稍候...</div>";
-
-    google.script.run
-      .withSuccessHandler(function(rows) {
-        if (!rows || rows.length === 0) {
-          document.getElementById('detail_table_div').innerHTML = "<div class='no-data'>此日期目前沒有消費紀錄。</div>";
-          return;
-        }
-        currentDetailRows = rows.map(r => ({
-          category: r.category,
-          item: r.item,
-          amount: r.amount,
-          date: dateStr,
-          weekName: dateToWeekName(dateStr)
-        }));
-        sortAndRenderDetail();
-      })
-      .withFailureHandler(function(error) {
-        document.getElementById('detail_table_div').innerHTML = "<div class='no-data' style='color:#d93025;'>⚠️ 載入明細失敗: " + error.message + "</div>";
-      })
-      .getFilteredDateData(dateStr);
-  }
-
-  function showWeekDetails(weekName) {
-    currentDetailType = 'week';
-    sortState = { key: 'date', dir: 'desc' };
-    showDetailContainer('📊 包含歷史上「' + weekName + '」的累積消費細項：');
-    document.getElementById('detail_table_div').innerHTML = "<div class='no-data'>🔄 正在即時抓取「" + weekName + "」的明細，請稍候...</div>";
-
-    google.script.run
-      .withSuccessHandler(function(rows) {
-        if (!rows || rows.length === 0) {
-          document.getElementById('detail_table_div').innerHTML = "<div class='no-data'>此星期目前沒有消費紀錄。</div>";
-          return;
-        }
-        currentDetailRows = rows.map(r => ({
-          category: r.category,
-          item: r.item,
-          amount: r.amount,
-          date: r.date,
-          weekName: weekName
-        }));
-        sortAndRenderDetail();
-      })
-      .withFailureHandler(function(error) {
-        document.getElementById('detail_table_div').innerHTML = "<div class='no-data' style='color:#d93025;'>⚠️ 載入明細失敗: " + error.message + "</div>";
-      })
-      .getFilteredWeekData(weekName);
-  }
-
-  function searchRecords() {
-    const keyword = document.getElementById('searchInput').value.trim();
-    const clearBtn = document.getElementById('searchClearBtn');
-    const container = document.getElementById('detailTableContainer');
-    const tableEl = document.getElementById('detail_table_div');
-
-    clearBtn.style.display = keyword ? 'flex' : 'none';
-
-    if (!keyword) {
-      container.style.display = 'none';
-      return;
-    }
-
-    if (!enrichedData.length) {
-      document.getElementById('detailTitle').innerText = '🔍 搜尋「' + keyword + '」的結果：';
-      tableEl.innerHTML = "<div class='no-data'>⚠️ 目前無可用資料，請重新整理頁面。</div>";
-      container.style.display = 'block';
-      return;
-    }
-
-    const matched = enrichedData.filter(r =>
-      r.category.includes(keyword) ||
-      r.item.includes(keyword) ||
-      r.date.includes(keyword) ||
-      r.weekName.includes(keyword)
-    );
-
-    currentDetailType = 'search';
-    sortState = { key: 'date', dir: 'desc' };
-    currentDetailRows = matched;
-
-    showDetailContainer('🔍 搜尋「' + keyword + '」的結果：');
-
-    if (matched.length === 0) {
-      tableEl.innerHTML = "<div class='no-data'>找不到包含「" + escapeHtml(keyword) + "」的紀錄。</div>";
-      return;
-    }
-
-    sortAndRenderDetail();
-  }
-
-  function clearSearch() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('searchClearBtn').style.display = 'none';
-    document.getElementById('detailTableContainer').style.display = 'none';
-    document.getElementById('searchInput').focus();
-  }
-
-  function showAllDetails() {
-    if (!enrichedData.length) {
-      document.getElementById('detailTitle').innerText = '📋 全部消費明細';
-      document.getElementById('detail_table_div').innerHTML = "<div class='no-data'>⚠️ 目前無可用資料，請重新整理頁面。</div>";
-      document.getElementById('detailTableContainer').style.display = 'block';
-      return;
-    }
-    document.getElementById('searchInput').value = '';
-    document.getElementById('searchClearBtn').style.display = 'none';
-
-    currentDetailType = 'search';   
-    sortState = { key: 'date', dir: 'desc' };
-    currentDetailRows = [...enrichedData];
-    showDetailContainer('📋 全部消費明細（共 ' + enrichedData.length + ' 筆）');
-    sortAndRenderDetail();
-  }
-
-  function escapeHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
-  function toggleBudgetInput() {
-    const row = document.getElementById('budgetInputRow');
-    const isHidden = row.style.display === 'none';
-    row.style.display = isHidden ? 'flex' : 'none';
-    document.getElementById('budgetMsg').innerText = '';
-    if (isHidden) document.getElementById('budgetInput').focus();
-  }
-
-  function submitBudget() {
-    const val = document.getElementById('budgetInput').value.trim();
-    const msgEl = document.getElementById('budgetMsg');
-
-    if (!val || isNaN(parseFloat(val)) || parseFloat(val) <= 0) {
-      msgEl.style.color = '#d93025';
-      msgEl.innerText = '⚠️ 請輸入有效金額';
-      return;
-    }
-
-    msgEl.style.color = '#888';
-    msgEl.innerText = '更新中...';
-
-    google.script.run
-      .withSuccessHandler(function(result) {
-        if (result.success) {
-          msgEl.style.color = '#27ae60';
-          msgEl.innerText = '✅ 已更新為 $' + result.budget.toLocaleString();
-          document.getElementById('budgetInputRow').style.display = 'none';
-          document.getElementById('budgetInput').value = '';
-          if (chartDataPayload) {
-            const oldExpense = chartDataPayload.budgetInfo.totalExpense;
-            chartDataPayload.budgetInfo.budget = result.budget;
-            chartDataPayload.budgetInfo.usePercent = (oldExpense / result.budget) * 100;
+            if (!chartDataPayload || chartDataPayload.categoryData.length <= 1) {
+              document.getElementById('loading').innerHTML = "<div style='color:#777;'>目前還沒有記帳數據喔！</div>";
+              return;
+            }
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
             renderBudgetCard(chartDataPayload.budgetInfo);
-          }
+            switchTab('category');
+          })
+          .withFailureHandler(function(error) {
+            document.getElementById('loading').innerHTML = "<div style='color:#d93025;'>載入失敗: " + error.message + "</div>";
+          })
+          .getChartData();
+      }
+
+      function renderBudgetCard(info) {
+        const budget = info.budget;
+        const expense = info.totalExpense;
+        const remaining = budget - expense;
+        let percent = info.usePercent;
+        if (percent > 100) percent = 100;
+
+        document.getElementById('textBudget').innerText = '$' + budget.toLocaleString();
+        document.getElementById('textExpense').innerText = '$' + expense.toLocaleString();
+
+        if (remaining < 0) {
+          document.getElementById('remainingBox').style.color = '#d93025';
+          document.getElementById('remainingLabel').innerText = '已透支金額';
+          document.getElementById('textRemaining').innerText = '$' + Math.abs(remaining).toLocaleString();
         } else {
-          msgEl.style.color = '#d93025';
-          msgEl.innerText = '❌ ' + result.message;
+          document.getElementById('remainingBox').style.color = '';
+          document.getElementById('remainingLabel').innerText = '剩餘預算';
+          document.getElementById('textRemaining').innerText = '$' + remaining.toLocaleString();
         }
-      })
-      .withFailureHandler(function(err) {
-        msgEl.style.color = '#d93025';
-        msgEl.innerText = '❌ 更新失敗: ' + err.message;
-      })
-      .updateBudget(val);
-  }
+
+        const progressBar = document.getElementById('progressBarFill');
+        progressBar.style.width = percent + '%';
+        if (percent >= 90) {
+          progressBar.style.backgroundColor = '#d93025';
+        } else if (percent >= 70) {
+          progressBar.style.backgroundColor = '#f2994a';
+        } else {
+          progressBar.style.backgroundColor = '#27ae60';
+        }
+      }
+
+      function switchTab(type) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(type + 'Btn').classList.add('active');
+
+        document.getElementById('piechart_div').style.display = 'none';
+        document.getElementById('linechart_div').style.display = 'none';
+        document.getElementById('weekchart_div').style.display = 'none';
+        document.getElementById('detailTableContainer').style.display = 'none';
+
+        document.getElementById('searchInput').value = '';
+        document.getElementById('searchClearBtn').style.display = 'none';
+
+        if (type === 'category') {
+          document.getElementById('piechart_div').style.display = 'block';
+          var data = google.visualization.arrayToDataTable(chartDataPayload.categoryData);
+          var options = {
+            title: '各類別支出比例 (點擊圓餅區塊可查看消費明細)',
+            is3D: true,
+            chartArea: { width: '90%', height: '80%' }
+          };
+          var chart = new google.visualization.PieChart(document.getElementById('piechart_div'));
+          google.visualization.events.addListener(chart, 'select', function() {
+            var selectedItem = chart.getSelection()[0];
+            if (selectedItem && selectedItem.row !== null && selectedItem.row !== undefined) {
+              var categoryName = data.getValue(selectedItem.row, 0);
+              showCategoryDetails(categoryName);
+            }
+          });
+          chart.draw(data, options);
+
+        } else if (type === 'date') {
+          document.getElementById('linechart_div').style.display = 'block';
+          var data = google.visualization.arrayToDataTable(chartDataPayload.dateData);
+          var options = {
+            title: '每日花費趨勢 (點擊藍色節點可查看當日消費明細)',
+            curveType: 'function',
+            pointsVisible: true,
+            chartArea: { width: '85%', height: '70%' }
+          };
+          var chart = new google.visualization.LineChart(document.getElementById('linechart_div'));
+          google.visualization.events.addListener(chart, 'select', function() {
+            var selectedItem = chart.getSelection()[0];
+            if (selectedItem && selectedItem.row !== null && selectedItem.row !== undefined) {
+              var dateStr = data.getValue(selectedItem.row, 0);
+              showDateDetails(dateStr);
+            }
+          });
+          chart.draw(data, options);
+
+        } else if (type === 'week') {
+          document.getElementById('weekchart_div').style.display = 'block';
+          var data = google.visualization.arrayToDataTable(chartDataPayload.weekData);
+          var options = {
+            title: '各星期平均花費分佈 (點擊長條柱可查看該星期歷史明細)',
+            legend: { position: 'none' },
+            chartArea: { width: '85%', height: '70%' },
+            vAxis: { title: '平均支出金額 (元)' }
+          };
+          var chart = new google.visualization.ColumnChart(document.getElementById('weekchart_div'));
+          google.visualization.events.addListener(chart, 'select', function() {
+            var selectedItem = chart.getSelection()[0];
+            if (selectedItem && selectedItem.row !== null && selectedItem.row !== undefined) {
+              var weekName = data.getValue(selectedItem.row, 0);
+              showWeekDetails(weekName);
+            }
+          });
+          chart.draw(data, options);
+        }
+      }
+
+      let currentDetailRows = [];
+      let currentDetailType = '';   
+      let sortState = { key: 'date', dir: 'desc' };
+
+      function sortAndRenderDetail() {
+        const rows = [...currentDetailRows];
+        const { key, dir } = sortState;
+
+        rows.sort((a, b) => {
+          let va = key === 'date' ? new Date(a.date) : a.amount;
+          let vb = key === 'date' ? new Date(b.date) : b.amount;
+          return dir === 'desc' ? vb - va : va - vb;
+        });
+
+        const subtotal = rows.reduce((s, r) => s + r.amount, 0);
+        const tableEl = document.getElementById('detail_table_div');
+
+        let html = '<table class="detail-table"><thead><tr>';
+        html += '<th>#</th>';
+
+        if (currentDetailType === 'category') {
+          html += sortableHeader('日期', 'date');
+          html += '<th>消費項目</th>';
+          html += sortableHeader('金額', 'amount');
+          html += '</tr></thead><tbody>';
+          rows.forEach((r, idx) => {
+            html += `<tr>
+              <td class="num">${idx+1}</td>
+              <td>${r.date}<span class="week-tag">${r.weekName}</span></td>
+              <td>${escapeHtml(r.item)}</td>
+              <td class="amount">$${r.amount.toLocaleString()}</td>
+            </tr>`;
+          });
+          html += `</tbody><tfoot><tr>
+            <td colspan="3" class="subtotal-label">該類別累積小計</td>
+            <td class="amount subtotal-val">$${subtotal.toLocaleString()}</td>
+          </tr></tfoot>`;
+
+        } else if (currentDetailType === 'date') {
+          html += '<th>消費類別</th><th>消費項目</th>';
+          html += sortableHeader('金額', 'amount');
+          html += '</tr></thead><tbody>';
+          rows.forEach((r, idx) => {
+            html += `<tr>
+              <td class="num">${idx+1}</td>
+              <td><span class="cat-tag">${escapeHtml(r.category)}</span></td>
+              <td>${escapeHtml(r.item)}</td>
+              <td class="amount">$${r.amount.toLocaleString()}</td>
+            </tr>`;
+          });
+          html += `</tbody><tfoot><tr>
+            <td colspan="3" class="subtotal-label">當日花費小計</td>
+            <td class="amount subtotal-val">$${subtotal.toLocaleString()}</td>
+          </tr></tfoot>`;
+
+        } else if (currentDetailType === 'week') {
+          html += sortableHeader('日期', 'date');
+          html += '<th>消費類別</th><th>消費項目</th>';
+          html += sortableHeader('金額', 'amount');
+          html += '</tr></thead><tbody>';
+          rows.forEach((r, idx) => {
+            html += `<tr>
+              <td class="num">${idx+1}</td>
+              <td>${r.date}<span class="week-tag">${r.weekName}</span></td>
+              <td><span class="cat-tag">${escapeHtml(r.category)}</span></td>
+              <td>${escapeHtml(r.item)}</td>
+              <td class="amount">$${r.amount.toLocaleString()}</td>
+            </tr>`;
+          });
+          html += `</tbody><tfoot><tr>
+            <td colspan="4" class="subtotal-label">歷史累積總花費</td>
+            <td class="amount subtotal-val">$${subtotal.toLocaleString()}</td>
+          </tr></tfoot>`;
+
+        } else {
+          html += sortableHeader('日期', 'date');
+          html += '<th>消費類別</th><th>消費項目</th>';
+          html += sortableHeader('金額', 'amount');
+          html += '</tr></thead><tbody>';
+          rows.forEach((r, idx) => {
+            html += `<tr>
+              <td class="num">${idx+1}</td>
+              <td>${r.date}<span class="week-tag">${r.weekName}</span></td>
+              <td><span class="cat-tag">${escapeHtml(r.category)}</span></td>
+              <td>${escapeHtml(r.item)}</td>
+              <td class="amount">$${r.amount.toLocaleString()}</td>
+            </tr>`;
+          });
+          html += `</tbody><tfoot><tr>
+            <td colspan="4" class="subtotal-label">搜尋結果小計（共 ${rows.length} 筆）</td>
+            <td class="amount subtotal-val">$${subtotal.toLocaleString()}</td>
+          </tr></tfoot>`;
+        }
+
+        html += '</table>';
+        tableEl.innerHTML = html;
+      }
+
+      function sortableHeader(label, key) {
+        const active = sortState.key === key;
+        const arrow = active ? (sortState.dir === 'desc' ? ' ▼' : ' ▲') : ' ⇅';
+        const style = active ? 'color:#1a73e8; cursor:pointer; user-select:none; white-space:nowrap;'
+                             : 'cursor:pointer; user-select:none; white-space:nowrap; color:#5a8dee;';
+        return `<th style="${style}" onclick="toggleSort('${key}')">${label}<span style="font-size:11px;">${arrow}</span></th>`;
+      }
+
+      function toggleSort(key) {
+        if (sortState.key === key) {
+          sortState.dir = sortState.dir === 'desc' ? 'asc' : 'desc';
+        } else {
+          sortState.key = key;
+          sortState.dir = 'desc';
+        }
+        sortAndRenderDetail();
+      }
+
+      function showDetailContainer(title) {
+        const container = document.getElementById('detailTableContainer');
+        document.getElementById('detailTitle').innerText = title;
+        container.style.display = 'block';
+        container.scrollIntoView({ behavior: 'smooth' });
+      }
+
+      function showCategoryDetails(category) {
+        if (!enrichedData.length) {
+          document.getElementById('detail_table_div').innerHTML = "<div class='no-data'>⚠️ 目前無可用明細，請重新整理頁面。</div>";
+          document.getElementById('detailTableContainer').style.display = 'block';
+          return;
+        }
+        currentDetailType = 'category';
+        sortState = { key: 'date', dir: 'desc' };
+        currentDetailRows = enrichedData.filter(r => r.category === category);
+        showDetailContainer('🍔 包含「' + category + '」的消費細項：');
+        sortAndRenderDetail();
+      }
+
+      /**
+       * 📅 日期明細（★已修正：加入動態星期資訊到標題中）
+       */
+      function showDateDetails(dateStr) {
+        currentDetailType = 'date';
+        sortState = { key: 'amount', dir: 'desc' };
+        
+        // 🛠️ 擷取星期文字並合併進標題
+        const weekName = dateToWeekName(dateStr);
+        const weekSuffix = weekName ? ` (${weekName})` : '';
+        showDetailContainer('📅 包含「' + dateStr + weekSuffix + '」的消費細項：');
+        
+        document.getElementById('detail_table_div').innerHTML = "<div class='no-data'>🔄 正在即時抓取「" + dateStr + "」的明細，請稍候...</div>";
+
+        google.script.run
+          .withSuccessHandler(function(rows) {
+            if (!rows || rows.length === 0) {
+              document.getElementById('detail_table_div').innerHTML = "<div class='no-data'>此日期目前沒有消費紀錄。</div>";
+              return;
+            }
+            currentDetailRows = rows.map(r => ({
+              category: r.category,
+              item: r.item,
+              amount: r.amount,
+              date: dateStr,
+              weekName: weekName
+            }));
+            sortAndRenderDetail();
+          })
+          .withFailureHandler(function(error) {
+            document.getElementById('detail_table_div').innerHTML = "<div class='no-data' style='color:#d93025;'>⚠️ 載入明細失敗: " + error.message + "</div>";
+          })
+          .getFilteredDateData(dateStr);
+      }
+
+      function showWeekDetails(weekName) {
+        currentDetailType = 'week';
+        sortState = { key: 'date', dir: 'desc' };
+        showDetailContainer('📊 包含歷史上「' + weekName + '」的累積消費細項：');
+        document.getElementById('detail_table_div').innerHTML = "<div class='no-data'>🔄 正在即時抓取「" + weekName + "」的明細，請稍候...</div>";
+
+        google.script.run
+          .withSuccessHandler(function(rows) {
+            if (!rows || rows.length === 0) {
+              document.getElementById('detail_table_div').innerHTML = "<div class='no-data'>此星期目前沒有消費紀錄。</div>";
+              return;
+            }
+            currentDetailRows = rows.map(r => ({
+              category: r.category,
+              item: r.item,
+              amount: r.amount,
+              date: r.date,
+              weekName: weekName
+            }));
+            sortAndRenderDetail();
+          })
+          .withFailureHandler(function(error) {
+            document.getElementById('detail_table_div').innerHTML = "<div class='no-data' style='color:#d93025;'>⚠️ 載入明細失敗: " + error.message + "</div>";
+          })
+          .getFilteredWeekData(weekName);
+      }
+
+      function searchRecords() {
+        const keyword = document.getElementById('searchInput').value.trim();
+        const clearBtn = document.getElementById('searchClearBtn');
+        const container = document.getElementById('detailTableContainer');
+        const tableEl = document.getElementById('detail_table_div');
+
+        clearBtn.style.display = keyword ? 'flex' : 'none';
+
+        if (!keyword) {
+          container.style.display = 'none';
+          return;
+        }
+
+        if (!enrichedData.length) {
+          document.getElementById('detailTitle').innerText = '🔍 搜尋「' + keyword + '」的結果：';
+          tableEl.innerHTML = "<div class='no-data'>⚠️ 目前無可用資料，請重新整理頁面。</div>";
+          container.style.display = 'block';
+          return;
+        }
+
+        const matched = enrichedData.filter(r =>
+          r.category.includes(keyword) ||
+          r.item.includes(keyword) ||
+          r.date.includes(keyword) ||
+          r.weekName.includes(keyword)   
+        );
+
+        currentDetailType = 'search';
+        sortState = { key: 'date', dir: 'desc' };
+        currentDetailRows = matched;
+
+        showDetailContainer('🔍 搜尋「' + keyword + '」的結果：');
+
+        if (matched.length === 0) {
+          tableEl.innerHTML = "<div class='no-data'>找不到包含「" + escapeHtml(keyword) + "」的紀錄。</div>";
+          return;
+        }
+
+        sortAndRenderDetail();
+      }
+
+      function clearSearch() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('searchClearBtn').style.display = 'none';
+        document.getElementById('detailTableContainer').style.display = 'none';
+        document.getElementById('searchInput').focus();
+      }
+
+      function showAllDetails() {
+        if (!enrichedData.length) {
+          document.getElementById('detailTitle').innerText = '📋 全部消費明細';
+          document.getElementById('detail_table_div').innerHTML = "<div class='no-data'>⚠️ 目前無可用資料，請重新整理頁面。</div>";
+          document.getElementById('detailTableContainer').style.display = 'block';
+          return;
+        }
+        document.getElementById('searchInput').value = '';
+        document.getElementById('searchClearBtn').style.display = 'none';
+
+        currentDetailType = 'search';   
+        sortState = { key: 'date', dir: 'desc' };
+        currentDetailRows = [...enrichedData];
+        showDetailContainer('📋 全部消費明細（共 ' + enrichedData.length + ' 筆）');
+        sortAndRenderDetail();
+      }
+
+      function escapeHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      }
+
+      function toggleBudgetInput() {
+        const row = document.getElementById('budgetInputRow');
+        const isHidden = row.style.display === 'none';
+        row.style.display = isHidden ? 'flex' : 'none';
+        document.getElementById('budgetMsg').innerText = '';
+        if (isHidden) document.getElementById('budgetInput').focus();
+      }
+
+      function submitBudget() {
+        const val = document.getElementById('budgetInput').value.trim();
+        const msgEl = document.getElementById('budgetMsg');
+
+        if (!val || isNaN(parseFloat(val)) || parseFloat(val) <= 0) {
+          msgEl.style.color = '#d93025';
+          msgEl.innerText = '⚠️ 請輸入有效金額';
+          return;
+        }
+
+        msgEl.style.color = '#888';
+        msgEl.innerText = '更新中...';
+
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (result.success) {
+              msgEl.style.color = '#27ae60';
+              msgEl.innerText = '✅ 已更新為 $' + result.budget.toLocaleString();
+              document.getElementById('budgetInputRow').style.display = 'none';
+              document.getElementById('budgetInput').value = '';
+              if (chartDataPayload) {
+                const oldExpense = chartDataPayload.budgetInfo.totalExpense;
+                chartDataPayload.budgetInfo.budget = result.budget;
+                chartDataPayload.budgetInfo.usePercent = (oldExpense / result.budget) * 100;
+                renderBudgetCard(chartDataPayload.budgetInfo);
+              }
+            } else {
+              msgEl.style.color = '#d93025';
+              msgEl.innerText = '❌ ' + result.message;
+            }
+          })
+          .withFailureHandler(function(err) {
+            msgEl.style.color = '#d93025';
+            msgEl.innerText = '❌ 更新失敗: ' + err.message;
+          })
+          .updateBudget(val);
+      }
 </script>
