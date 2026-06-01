@@ -1,24 +1,34 @@
 function doPost(e) {
   try {
+    // 1. 解析安全檢查
+    if (!e || !e.postData || !e.postData.contents) {
+      return createResponse("錯誤: 找不到 postData 內容");
+    }
+
     const params = JSON.parse(e.postData.contents);
     const { category = "未分類", name = "無名稱", amount = 0, date } = params;
 
+    // 2. 處理日期（確保如果是字串也能被 Google Sheet 正確識別為日期格式）
+    const formattedDate = date ? new Date(date) : new Date();
+
+    // 3. 開啟試算表
     const spreadsheet = SpreadsheetApp.openById('1BJt6ZqRsIrJfwJlhiwn_6noXDpxVYdVyA1fiBlgR2Pk');
     const sheet = spreadsheet.getSheetByName('記帳明細');
 
-    const columnB = sheet.getRange("B:B").getValues().flat(); 
-    let nextRow = columnB.findIndex(value => value === "") + 1; 
-
-    if (nextRow === 0) {
-      nextRow = sheet.getLastRow() + 1;
+    if (!sheet) {
+      return createResponse("錯誤: 找不到『記帳明細』工作表");
     }
 
-    const rowData = [category, name, amount, date || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy/MM/dd")];
-    sheet.getRange(nextRow, 1, 1, rowData.length).setValues([rowData]);
+    // 4. 準備資料陣列 (A欄: 分類, B欄: 名稱, C欄: 金額, D欄: 日期)
+    const rowData = [category, name, Number(amount), formattedDate];
 
-    return ContentService.createTextOutput("已新增").setMimeType(ContentService.MimeType.TEXT);
+    // 5. 核心優化：直接附加到最後一行 (安全、快速，絕對不會覆寫舊資料)
+    sheet.appendRow(rowData);
+
+    return createResponse("已新增");
+    
   } catch (error) {
-    return ContentService.createTextOutput(`發生錯誤: ${error.message}`).setMimeType(ContentService.MimeType.TEXT);
+    return createResponse(`發生錯誤: ${error.message}`);
   }
 }
 
