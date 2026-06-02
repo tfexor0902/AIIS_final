@@ -217,6 +217,53 @@ function getChartData() {
   };
 }
 
+function renderDateChart() {
+        const startVal = document.getElementById('dateStart') ? document.getElementById('dateStart').value : '';
+        const endVal   = document.getElementById('dateEnd')   ? document.getElementById('dateEnd').value   : '';
+
+        let sourceData = chartDataPayload.dateData;
+        let filtered = sourceData.slice(1);
+
+        if (startVal) {
+          filtered = filtered.filter(r => r[0].replace(/\//g, '-') >= startVal);
+        }
+        if (endVal) {
+          filtered = filtered.filter(r => r[0].replace(/\//g, '-') <= endVal);
+        }
+
+        const infoEl = document.getElementById('dateRangeInfo');
+        if ((startVal || endVal) && infoEl) {
+          const subtotal = filtered.reduce((s, r) => s + r[1], 0);
+          infoEl.style.display = 'block';
+          infoEl.innerHTML = '已篩選 <strong>' + filtered.length + '</strong> 天，區間花費小計：<strong>$' + subtotal.toLocaleString() + '</strong>';
+        } else if (infoEl) {
+          infoEl.style.display = 'none';
+        }
+
+        const drawData = [sourceData[0], ...filtered];
+        if (drawData.length <= 1) {
+          document.getElementById('linechart_div').innerHTML = "<div class='no-data'>此區間沒有消費紀錄。</div>";
+          return;
+        }
+
+        const data = google.visualization.arrayToDataTable(drawData);
+        const options = {
+          title: '每日花費趨勢 (點擊藍色節點可查看當日消費明細)',
+          curveType: 'function',
+          pointsVisible: true,
+          chartArea: { width: '85%', height: '70%' }
+        };
+        const chart = new google.visualization.LineChart(document.getElementById('linechart_div'));
+        google.visualization.events.addListener(chart, 'select', function() {
+          const selectedItem = chart.getSelection()[0];
+          if (selectedItem && selectedItem.row !== null && selectedItem.row !== undefined) {
+            const dateStr = data.getValue(selectedItem.row, 0);
+            showDateDetails(dateStr);
+          }
+        });
+        chart.draw(data, options);
+      }
+
 
 /**
  * 🔍 【功能 6】互動功能：點選圖表上的「某個日期」，撈出當天的所有消費明細
