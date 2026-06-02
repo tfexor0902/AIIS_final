@@ -6,7 +6,8 @@ function doPost(e) {
   try {
     // 1. 安全檢查：確認是否有資料存入，如果沒有則報錯
     if (!e || !e.postData || !e.postData.contents) {
-      return createResponse("錯誤: 找不到 postData 內容");
+    return ContentService.createTextOutput("錯誤: 找不到 postData 內容").setMimeType(ContentService.MimeType.TEXT);
+      /* return createResponse("錯誤: 找不到 postData 內容"); */
     }
 
     // 2. 解析資料：把傳過來的 JSON 字串，變成 JavaScript 看得懂的物件
@@ -15,16 +16,21 @@ function doPost(e) {
     // 3. 設定預設值：如果對方沒傳分類就填"未分類"，沒傳金額就當作 0 元
     const { category = "未分類", name = "無名稱", amount = 0, date } = params;
 
-    // 4. 處理日期：如果對方有傳日期就用對方的，沒傳就自動抓「現在的時間」
-    const formattedDate = date ? new Date(date) : new Date();
+// 4. 處理日期：先建立時間物件
+const rawDate = date ? new Date(date) : new Date();
+
+// 將時間物件格式化為「年/月/日」字串 (例如：2026/06/02)
+const formattedDate = Utilities.formatDate(rawDate, Session.getScriptTimeZone(), "yyyy/MM/dd");
 
     // 5. 連線到 Google 試算表：用網址中間那一串長長的 ID 來鎖定你的記帳本
-    const spreadsheet = SpreadsheetApp.openById('你的ID');
+    const spreadsheet = SpreadsheetApp.openById('1U9_B2_7BQQCvv88G9q_Uf7ry4ld20SGqpVuIkh56Tgk');
     const sheet = spreadsheet.getSheetByName('記帳明細');
 
     // 防呆機制：萬一你把工作表改名了，系統找不到會主動警告，不會整台當掉
     if (!sheet) {
-      return createResponse("錯誤: 找不到『記帳明細』工作表");
+      return ContentService.createTextOutput("錯誤:找不到『記帳明細』工作表").setMimeType(ContentService.MimeType.TEXT);
+  
+       /* return createResponse("錯誤: 找不到『記帳明細』工作表"); */
     }
 
     // 6. 整理排版：把資料排成一陣列 (由左到右分別是：分類、名稱、金額、日期)
@@ -34,11 +40,15 @@ function doPost(e) {
     sheet.appendRow(rowData);
 
     // 成功完成，回傳訊息給發送端
-    return createResponse("已新增");
+          return ContentService.createTextOutput("已新增").setMimeType(ContentService.MimeType.TEXT);
+
+    // return createResponse("已新增");
     
   } catch (error) {
     // 萬一上面任何一個步驟出錯（例如試算表 ID 填錯），就會跑到這裡來捕捉錯誤訊息
-    return createResponse(`發生錯誤: ${error.message}`);
+          return ContentService.createTextOutput("發生錯誤").setMimeType(ContentService.MimeType.TEXT);
+
+    //return createResponse(`發生錯誤: ${error.message}`);
   }
 }
 
@@ -90,7 +100,7 @@ function include(filename) {
  * 這個函式會算好「分類比例」、「每日趨勢」、「星期幾花最多」
  */
 function getChartData() {
-  const spreadsheet = SpreadsheetApp.openById('你的ID');
+  const spreadsheet = SpreadsheetApp.openById('1U9_B2_7BQQCvv88G9q_Uf7ry4ld20SGqpVuIkh56Tgk');
   const sheet = spreadsheet.getSheetByName('記帳明細');
   
   // 防呆：如果找不到記帳明細表，就回傳一堆空的預設格式
@@ -270,7 +280,7 @@ function renderDateChart() {
  */
 function getFilteredDateData(targetDateStr) {
   try {
-    const spreadsheet = SpreadsheetApp.openById('你的id');
+    const spreadsheet = SpreadsheetApp.openById('1U9_B2_7BQQCvv88G9q_Uf7ry4ld20SGqpVuIkh56Tgk');
     const sheet = spreadsheet.getSheetByName('記帳明細');
     if (!sheet) return [];
     
@@ -310,7 +320,7 @@ function getFilteredDateData(targetDateStr) {
  */
 function getFilteredWeekData(targetWeekName) {
   try {
-    const spreadsheet = SpreadsheetApp.openById('1BJt6ZqRsIrJfwJlhiwn_6noXDpxVYdVyA1fiBlgR2Pk');
+    const spreadsheet = SpreadsheetApp.openById('1U9_B2_7BQQCvv88G9q_Uf7ry4ld20SGqpVuIkh56Tgk');
     const sheet = spreadsheet.getSheetByName('記帳明細');
     if (!sheet) return [];
     
@@ -427,7 +437,7 @@ function updateBudget(newBudget) {
     if (isNaN(amount) || amount <= 0) {
       return { success: false, message: '金額格式不正確' };
     }
-    const spreadsheet = SpreadsheetApp.openById('1BJt6ZqRsIrJfwJlhiwn_6noXDpxVYdVyA1fiBlgR2Pk');
+    const spreadsheet = SpreadsheetApp.openById('1U9_B2_7BQQCvv88G9q_Uf7ry4ld20SGqpVuIkh56Tgk');
     const sheet = spreadsheet.getSheetByName('記帳明細');
     
     // 把新預算直接蓋掉舊的 F2 儲存格
