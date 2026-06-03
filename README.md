@@ -9,7 +9,7 @@
 2. 輸入至google試算表中
 3. 使用html輸出現有的資料
 
-此作品的流程圖如下(詳見 file中的):
+此作品的流程圖如下(視覺化詳見 file中的"流程圖"):
 
     > subgraph User [1. 使用者 User]
        A[iOS 捷徑 <br>輸入金額與項目]:::user
