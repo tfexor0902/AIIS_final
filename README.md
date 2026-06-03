@@ -119,4 +119,16 @@
 > 手機捷徑連結:
 > https://www.icloud.com/shortcuts/c3b6b0ab1c7543e584ea8eba8e825bf4
 
+> 實際操作如下:
+> https://youtube.com/shorts/1Mytk7BRaxM?si=SNIGCaTwgNnxTvWq
+
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+> 安裝操作影片如下:
+> https://youtu.be/TfGj7mRy9WY
+
+> 如何做成遠端?:
+> https://youtu.be/WPa6X6bqwIg
+
 
