@@ -1,1 +1,3 @@
+1. 由於這個系統是高度綁定Google推行的App Scripts功能，需要確認政策是否有進行更新
 
+2. 同樣基於Google試算表的特性，無法利用資料庫的全部概念(Prime Key、Foreign Key等)
