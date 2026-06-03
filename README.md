@@ -19,8 +19,18 @@
    > subgraph System [2. 系統 System - Google Apps Script]
    >    C{"後端 Code.gs <br>中央調度中心"}:::system
    >    D["前端 Chart.html <br>網頁渲染與搜尋引擎"]:::system
-   > end
+   >  end
 
+    > subgraph User [1. 使用者 User]
+       A[iOS 捷徑 <br>輸入金額與項目]:::user
+       B[瀏覽器儀表板 <br>讀取網頁與進行搜尋]:::user
+    end
+
+     %% 2. 系統中樞
+    subgraph System [2. 系統 System - Google Apps Script]
+       C{"後端 Code.gs <br>中央調度中心"}:::system
+       D["前端 Chart.html <br>網頁渲染與搜尋引擎"]:::system
+     end
     > %% 3. 資料來源
     > subgraph DataSource [3. 資料來源 Data Source]
     >    E[("Google Sheets 試算表 <br>工作表：『記帳明細』")]:::data
