@@ -23,7 +23,7 @@ const rawDate = date ? new Date(date) : new Date();
 const formattedDate = Utilities.formatDate(rawDate, Session.getScriptTimeZone(), "yyyy/MM/dd");
 
     // 5. 連線到 Google 試算表：用網址中間那一串長長的 ID 來鎖定你的記帳本
-    const spreadsheet = SpreadsheetApp.openById('1U9_B2_7BQQCvv88G9q_Uf7ry4ld20SGqpVuIkh56Tgk');
+    const spreadsheet = SpreadsheetApp.openById('你的ID');
     const sheet = spreadsheet.getSheetByName('記帳明細');
 
     // 防呆機制：萬一你把工作表改名了，系統找不到會主動警告，不會整台當掉
@@ -100,7 +100,7 @@ function include(filename) {
  * 這個函式會算好「分類比例」、「每日趨勢」、「星期幾花最多」
  */
 function getChartData() {
-  const spreadsheet = SpreadsheetApp.openById('1U9_B2_7BQQCvv88G9q_Uf7ry4ld20SGqpVuIkh56Tgk');
+  const spreadsheet = SpreadsheetApp.openById('你的ID');
   const sheet = spreadsheet.getSheetByName('記帳明細');
   
   // 防呆：如果找不到記帳明細表，就回傳一堆空的預設格式
@@ -280,7 +280,7 @@ function renderDateChart() {
  */
 function getFilteredDateData(targetDateStr) {
   try {
-    const spreadsheet = SpreadsheetApp.openById('1U9_B2_7BQQCvv88G9q_Uf7ry4ld20SGqpVuIkh56Tgk');
+    const spreadsheet = SpreadsheetApp.openById('你的ID');
     const sheet = spreadsheet.getSheetByName('記帳明細');
     if (!sheet) return [];
     
@@ -320,7 +320,7 @@ function getFilteredDateData(targetDateStr) {
  */
 function getFilteredWeekData(targetWeekName) {
   try {
-    const spreadsheet = SpreadsheetApp.openById('1U9_B2_7BQQCvv88G9q_Uf7ry4ld20SGqpVuIkh56Tgk');
+    const spreadsheet = SpreadsheetApp.openById('你的ID');
     const sheet = spreadsheet.getSheetByName('記帳明細');
     if (!sheet) return [];
     
@@ -437,7 +437,7 @@ function updateBudget(newBudget) {
     if (isNaN(amount) || amount <= 0) {
       return { success: false, message: '金額格式不正確' };
     }
-    const spreadsheet = SpreadsheetApp.openById('1U9_B2_7BQQCvv88G9q_Uf7ry4ld20SGqpVuIkh56Tgk');
+    const spreadsheet = SpreadsheetApp.openById('你的ID');
     const sheet = spreadsheet.getSheetByName('記帳明細');
     
     // 把新預算直接蓋掉舊的 F2 儲存格
