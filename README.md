@@ -98,6 +98,10 @@
 
 讓前端網頁可以運作：在編輯器左側點擊 「+」（新增檔案）> 選擇 「HTML」，並命名為JS。
 
+要讓Appscript可以使用外部API，點擊左側的「專案設計」，勾選『在編輯器中顯示「appscript.json」資訊清單檔案』，貼上App中的json檔（appscript.jscon）。
+
+點擊左側的「觸發條件」，選擇你要執行的項目「InstallableOnOpen」，選取活動來源「試算表」
+
 
 填入網頁程式碼：將 Chart.html 內預設內容清空，完整複製並貼上你的 Chart.html 程式碼（包含最新新增的搜尋欄位提示功能）。
 
