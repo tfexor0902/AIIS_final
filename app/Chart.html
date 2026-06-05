@@ -3,16 +3,18 @@
   <head>
     <base target="_top">
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    
     <?!= include('CSS'); ?>
   </head>
   <body>
-<div id="loading">
+
+    <div id="loading">
       <div class="spinner"></div>
       <div style="font-size:15px; color:#555;">數據統計中，請稍候...</div>
     </div>
 
     <div id="mainContent" style="display: none;">
+
+      <!-- 預算卡片 -->
       <div class="budget-card">
         <div class="budget-grid">
           <div class="budget-item">
@@ -24,7 +26,7 @@
             <div class="budget-value" id="textExpense">$0</div>
           </div>
           <div class="budget-item" id="remainingBox" style="color: #27ae60;">
-            <div class="budget-label" id="remainingLabel">💰 剩餘可用額度</div>
+            <div class="budget-label" id="remainingLabel">💰 剩餘預算</div>
             <div class="budget-value" id="textRemaining">$0</div>
           </div>
         </div>
@@ -33,18 +35,20 @@
         </div>
       </div>
 
+      <!-- 更新預算列 -->
       <div id="budgetEditArea" style="margin-top: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
         <button onclick="toggleBudgetInput()"
           style="font-size:13px; padding:5px 12px; border:1px solid #1a73e8; border-radius:20px; background:white; color:#1a73e8; cursor:pointer;">
           ✏️ 更新預算
         </button>
+        
         <div id="budgetInputRow" style="display:none; align-items:center; gap:6px;">
           <input id="budgetInput" type="number" placeholder="輸入新預算金額"
             style="padding:5px 10px; border:1px solid #ccc; border-radius:6px; font-size:14px; width:160px;" />
-          <button onclick="submitBudget()"
-            style="padding:5px 14px; background:#1a73e8; color:white; border:none; border-radius:6px; cursor:pointer; font-size:13px;">
-            確認
-          </button>
+         <button id="submitBudgetBtn" onclick="submitBudget()"
+  style="padding:5px 14px; background:#1a73e8; color:white; border:none; border-radius:6px; cursor:pointer; font-size:13px;">
+  確認
+</button>
           <button onclick="toggleBudgetInput()"
             style="padding:5px 10px; background:#eee; color:#555; border:none; border-radius:6px; cursor:pointer; font-size:13px;">
             取消
@@ -53,16 +57,33 @@
         <span id="budgetMsg" style="font-size:13px; color:#27ae60;"></span>
       </div>
 
+<!-- 🤖 Gemini 智慧財務管家即時診斷看板外框 -->
+<div id="ai-card" class="ai-diagnose-card">
+  
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+    <h3 style="margin:0;">🤖 Gemini 智慧財務管家</h3>
+    <button id="refreshAdviceBtn" onclick="refreshAiAdvice()"
+      onmouseover="this.style.background='#3b82f6';this.style.color='white';"
+      onmouseout="this.style.background='white';this.style.color='#3b82f6';padding:5px 12px; border:1px solid #1a73e8; border-radius:20px;">
+      🔄 請管家重新審閱
+    </button>
+  </div>
+
+  <!-- 💬 毒舌點評文字框：移進來這裡 -->
+  <p id="ai-response-text" class="ai-text-content">
+    正在調閱帳本進行深度個人化財務審查，請管家稍候...
+  </p>
+
+</div>  <!-- ← ai-card 結束在這裡 -->
+</div>
+      
+      <!-- 搜尋列 -->
       <div class="search-area">
         <div class="search-wrapper">
           <span class="search-icon">🔍</span>
-          <input
-            id="searchInput"
-            class="search-input"
-            type="text"
+          <input id="searchInput" class="search-input" type="text"
             placeholder="搜尋類別、項目、日期或星期..."
-            oninput="searchRecords()"
-          />
+            oninput="searchRecords()" />
           <button id="searchClearBtn" class="search-clear-btn" onclick="clearSearch()">✕</button>
         </div>
         <button onclick="showAllDetails()"
@@ -73,13 +94,16 @@
         </button>
       </div>
 
+
+
+      <!-- 分頁切換 -->
       <div class="tab-container">
         <button id="categoryBtn" class="tab-btn" onclick="switchTab('category')">🍔 分類比例</button>
-        <button id="dateBtn" class="tab-btn" onclick="switchTab('date')">📅 日期趨勢</button>
-        <button id="weekBtn" class="tab-btn" onclick="switchTab('week')">📊 星期分佈</button>
+        <button id="dateBtn"     class="tab-btn" onclick="switchTab('date')">📅 日期趨勢</button>
+        <button id="weekBtn"     class="tab-btn" onclick="switchTab('week')">📊 星期分佈</button>
       </div>
 
-      <!-- 日期範圍篩選列（只在日期趨勢分頁顯示） -->
+      <!-- 日期範圍篩選列 -->
       <div id="dateRangeBar" class="date-range-bar">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <span style="font-size:13px; color:#555; white-space:nowrap;">📆 篩選區間</span>
@@ -100,20 +124,22 @@
         <div id="dateRangeInfo" class="range-info"></div>
       </div>
 
+      <!-- 圖表區 -->
       <div class="chart-box">
-        <div id="piechart_div" style="width: 100%; height: 100%;"></div>
+        <div id="piechart_div"  style="width: 100%; height: 100%;"></div>
         <div id="linechart_div" style="width: 100%; height: 100%; display: none;"></div>
         <div id="weekchart_div" style="width: 100%; height: 100%; display: none;"></div>
       </div>
 
+      <!-- 明細表格 -->
       <div id="detailTableContainer" class="detail-container">
         <div id="detailTitle" class="detail-title">📋 消費細項</div>
         <div id="detail_table_div"></div>
       </div>
-    </div>
+
+    </div><!-- end #mainContent -->
 
     <?!= include('JS'); ?>
   </body>
 </html>
-
 
