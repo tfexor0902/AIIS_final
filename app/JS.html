@@ -5,9 +5,10 @@
   const WEEK_NAMES = ["星期日","星期一","星期二","星期三","星期四","星期五","星期六"];
 
   let chartDataPayload = null;
-  let rawData = [];
-  let enrichedData = [];
+  let rawData          = [];
+  let enrichedData     = [];
 
+  // ── 工具：日期字串 → 星期幾中文 ──
   function dateToWeekName(dateStr) {
     if (!dateStr || dateStr === '—') return '';
     const d = new Date(dateStr.replace(/\//g, '-'));
@@ -15,11 +16,14 @@
     return WEEK_NAMES[d.getDay()];
   }
 
+  // ══════════════════════════════════════════
+  // 【初始化】載入所有圖表資料
+  // ══════════════════════════════════════════
   function loadAllData() {
     google.script.run
       .withSuccessHandler(function(allData) {
         chartDataPayload = allData;
-        rawData = allData.rawData || [];
+        rawData          = allData.rawData || [];
 
         enrichedData = [];
         for (let i = 1; i < rawData.length; i++) {
@@ -35,119 +39,119 @@
           document.getElementById('loading').innerHTML = "<div style='color:#777;'>目前還沒有記帳數據喔！</div>";
           return;
         }
-        document.getElementById('loading').style.display = 'none';
+
+        document.getElementById('loading').style.display   = 'none';
         document.getElementById('mainContent').style.display = 'block';
         renderBudgetCard(chartDataPayload.budgetInfo);
+        displayAiAdvice(allData);
         switchTab('category');
       })
       .withFailureHandler(function(error) {
-        document.getElementById('loading').innerHTML = "<div style='color:#d93025;'>載入失敗: " + error.message + "</div>";
+        document.getElementById('loading').innerHTML =
+          "<div style='color:#d93025;'>載入失敗: " + error.message + "</div>";
       })
       .getChartData();
   }
 
+  // ══════════════════════════════════════════
+  // 【預算卡片】渲染
+  // ══════════════════════════════════════════
   function renderBudgetCard(info) {
-    const budget = info.budget;
-    const expense = info.totalExpense;
+    const budget    = info.budget;
+    const expense   = info.totalExpense;
     const remaining = budget - expense;
-    let percent = info.usePercent;
+    let   percent   = info.usePercent;
     if (percent > 100) percent = 100;
 
-    document.getElementById('textBudget').innerText = '$' + budget.toLocaleString();
+    document.getElementById('textBudget').innerText  = '$' + budget.toLocaleString();
     document.getElementById('textExpense').innerText = '$' + expense.toLocaleString();
 
     if (remaining < 0) {
-      document.getElementById('remainingBox').style.color = '#d93025';
-      document.getElementById('remainingLabel').innerText = '已透支金額';
-      document.getElementById('textRemaining').innerText = '$' + Math.abs(remaining).toLocaleString();
+      document.getElementById('remainingBox').style.color    = '#d93025';
+      document.getElementById('remainingLabel').innerText    = '已透支金額';
+      document.getElementById('textRemaining').innerText     = '$' + Math.abs(remaining).toLocaleString();
     } else {
-      document.getElementById('remainingBox').style.color = '';
-      document.getElementById('remainingLabel').innerText = '剩餘預算';
-      document.getElementById('textRemaining').innerText = '$' + remaining.toLocaleString();
+      document.getElementById('remainingBox').style.color    = '#27ae60';
+      document.getElementById('remainingLabel').innerText    = '剩餘預算';
+      document.getElementById('textRemaining').innerText     = '$' + remaining.toLocaleString();
     }
 
-    const progressBar = document.getElementById('progressBarFill');
-    progressBar.style.width = percent + '%';
-    if (percent >= 90) {
-      progressBar.style.backgroundColor = '#d93025';
-    } else if (percent >= 70) {
-      progressBar.style.backgroundColor = '#f2994a';
-    } else {
-      progressBar.style.backgroundColor = '#27ae60';
-    }
+    const bar = document.getElementById('progressBarFill');
+    bar.style.width = percent + '%';
+    if      (percent >= 90) bar.style.backgroundColor = '#d93025';
+    else if (percent >= 70) bar.style.backgroundColor = '#f2994a';
+    else                    bar.style.backgroundColor = '#27ae60';
   }
 
+  // ══════════════════════════════════════════
+  // 【分頁切換】
+  // ══════════════════════════════════════════
   function switchTab(type) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById(type + 'Btn').classList.add('active');
 
-    document.getElementById('piechart_div').style.display = 'none';
-    document.getElementById('linechart_div').style.display = 'none';
-    document.getElementById('weekchart_div').style.display = 'none';
+    ['piechart_div', 'linechart_div', 'weekchart_div'].forEach(id => {
+      document.getElementById(id).style.display = 'none';
+    });
     document.getElementById('detailTableContainer').style.display = 'none';
-    document.getElementById('dateRangeBar').style.display = 'none';
-
-    document.getElementById('searchInput').value = '';
-    document.getElementById('searchClearBtn').style.display = 'none';
+    document.getElementById('dateRangeBar').style.display         = 'none';
+    document.getElementById('searchInput').value                  = '';
+    document.getElementById('searchClearBtn').style.display       = 'none';
 
     if (type === 'category') {
       document.getElementById('piechart_div').style.display = 'block';
-      var data = google.visualization.arrayToDataTable(chartDataPayload.categoryData);
-      var options = {
-        title: '各類別支出比例 (點擊圓餅區塊可查看消費明細)',
-        is3D: true,
-        chartArea: { width: '90%', height: '80%' }
+      const data    = google.visualization.arrayToDataTable(chartDataPayload.categoryData);
+      const options = {
+        title     : '各類別支出比例 (點擊圓餅區塊可查看消費明細)',
+        is3D      : true,
+        chartArea : { width: '90%', height: '80%' }
       };
-      var chart = new google.visualization.PieChart(document.getElementById('piechart_div'));
+      const chart = new google.visualization.PieChart(document.getElementById('piechart_div'));
       google.visualization.events.addListener(chart, 'select', function() {
-        var selectedItem = chart.getSelection()[0];
-        if (selectedItem && selectedItem.row !== null && selectedItem.row !== undefined) {
-          var categoryName = data.getValue(selectedItem.row, 0);
-          showCategoryDetails(categoryName);
+        const sel = chart.getSelection()[0];
+        if (sel && sel.row !== null && sel.row !== undefined) {
+          showCategoryDetails(data.getValue(sel.row, 0));
         }
       });
       chart.draw(data, options);
 
     } else if (type === 'date') {
-      document.getElementById('dateRangeBar').style.display = 'block';
+      document.getElementById('dateRangeBar').style.display  = 'block';
       document.getElementById('linechart_div').style.display = 'block';
       renderDateChart();
 
     } else if (type === 'week') {
       document.getElementById('weekchart_div').style.display = 'block';
-      var data = google.visualization.arrayToDataTable(chartDataPayload.weekData);
-      var options = {
-        title: '各星期平均花費分佈 (點擊長條柱可查看該星期歷史明細)',
-        legend: { position: 'none' },
-        chartArea: { width: '85%', height: '70%' },
-        vAxis: { title: '平均支出金額 (元)' }
+      const data    = google.visualization.arrayToDataTable(chartDataPayload.weekData);
+      const options = {
+        title     : '各星期平均花費分佈 (點擊長條柱可查看該星期歷史明細)',
+        legend    : { position: 'none' },
+        chartArea : { width: '85%', height: '70%' },
+        vAxis     : { title: '平均支出金額 (元)' }
       };
-      var chart = new google.visualization.ColumnChart(document.getElementById('weekchart_div'));
+      const chart = new google.visualization.ColumnChart(document.getElementById('weekchart_div'));
       google.visualization.events.addListener(chart, 'select', function() {
-        var selectedItem = chart.getSelection()[0];
-        if (selectedItem && selectedItem.row !== null && selectedItem.row !== undefined) {
-          var weekName = data.getValue(selectedItem.row, 0);
-          showWeekDetails(weekName);
+        const sel = chart.getSelection()[0];
+        if (sel && sel.row !== null && sel.row !== undefined) {
+          showWeekDetails(data.getValue(sel.row, 0));
         }
       });
       chart.draw(data, options);
     }
   }
 
-  // === 日期範圍篩選相關 ===
+  // ══════════════════════════════════════════
+  // 【日期趨勢圖】含區間篩選
+  // ══════════════════════════════════════════
   function renderDateChart() {
-    const startVal = document.getElementById('dateStart') ? document.getElementById('dateStart').value : '';
-    const endVal   = document.getElementById('dateEnd')   ? document.getElementById('dateEnd').value   : '';
+    const startVal = document.getElementById('dateStart').value;
+    const endVal   = document.getElementById('dateEnd').value;
 
     let sourceData = chartDataPayload.dateData;
-    let filtered = sourceData.slice(1);
+    let filtered   = sourceData.slice(1);
 
-    if (startVal) {
-      filtered = filtered.filter(r => r[0].replace(/\//g, '-') >= startVal);
-    }
-    if (endVal) {
-      filtered = filtered.filter(r => r[0].replace(/\//g, '-') <= endVal);
-    }
+    if (startVal) filtered = filtered.filter(r => r[0].replace(/\//g, '-') >= startVal);
+    if (endVal)   filtered = filtered.filter(r => r[0].replace(/\//g, '-') <= endVal);
 
     const infoEl = document.getElementById('dateRangeInfo');
     if ((startVal || endVal) && infoEl) {
@@ -164,19 +168,18 @@
       return;
     }
 
-    const data = google.visualization.arrayToDataTable(drawData);
+    const data    = google.visualization.arrayToDataTable(drawData);
     const options = {
-      title: '每日花費趨勢 (點擊藍色節點可查看當日消費明細)',
-      curveType: 'function',
-      pointsVisible: true,
-      chartArea: { width: '85%', height: '70%' }
+      title         : '每日花費趨勢 (點擊藍色節點可查看當日消費明細)',
+      curveType     : 'function',
+      pointsVisible : true,
+      chartArea     : { width: '85%', height: '70%' }
     };
     const chart = new google.visualization.LineChart(document.getElementById('linechart_div'));
     google.visualization.events.addListener(chart, 'select', function() {
-      const selectedItem = chart.getSelection()[0];
-      if (selectedItem && selectedItem.row !== null && selectedItem.row !== undefined) {
-        const dateStr = data.getValue(selectedItem.row, 0);
-        showDateDetails(dateStr);
+      const sel = chart.getSelection()[0];
+      if (sel && sel.row !== null && sel.row !== undefined) {
+        showDateDetails(data.getValue(sel.row, 0));
       }
     });
     chart.draw(data, options);
@@ -187,9 +190,9 @@
     btnEl.classList.add('active');
     if (days === null) {
       document.getElementById('dateStart').value = '';
-      document.getElementById('dateEnd').value = '';
+      document.getElementById('dateEnd').value   = '';
     } else {
-      const end = new Date();
+      const end   = new Date();
       const start = new Date();
       start.setDate(start.getDate() - (days - 1));
       document.getElementById('dateStart').value = start.toISOString().split('T')[0];
@@ -200,18 +203,20 @@
 
   function clearDateRange() {
     document.getElementById('dateStart').value = '';
-    document.getElementById('dateEnd').value = '';
+    document.getElementById('dateEnd').value   = '';
     document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
     renderDateChart();
   }
 
-  // === 明細表格相關 ===
+  // ══════════════════════════════════════════
+  // 【明細表格】排序 & 渲染
+  // ══════════════════════════════════════════
   let currentDetailRows = [];
   let currentDetailType = '';
-  let sortState = { key: 'date', dir: 'desc' };
+  let sortState         = { key: 'date', dir: 'desc' };
 
   function sortAndRenderDetail() {
-    const rows = [...currentDetailRows];
+    const rows      = [...currentDetailRows];
     const { key, dir } = sortState;
 
     rows.sort((a, b) => {
@@ -221,19 +226,14 @@
     });
 
     const subtotal = rows.reduce((s, r) => s + r.amount, 0);
-    const tableEl = document.getElementById('detail_table_div');
-
     let html = '<table class="detail-table"><thead><tr>';
-    html += '<th>#</th>';
 
     if (currentDetailType === 'category') {
-      html += sortableHeader('日期', 'date');
-      html += '<th>消費項目</th>';
-      html += sortableHeader('金額', 'amount');
+      html += '<th>#</th>' + sortableHeader('日期','date') + '<th>消費項目</th>' + sortableHeader('金額','amount');
       html += '</tr></thead><tbody>';
-      rows.forEach((r, idx) => {
+      rows.forEach((r, i) => {
         html += `<tr>
-          <td class="num">${idx+1}</td>
+          <td class="num">${i+1}</td>
           <td>${r.date}<span class="week-tag">${r.weekName}</span></td>
           <td>${escapeHtml(r.item)}</td>
           <td class="amount">$${r.amount.toLocaleString()}</td>
@@ -245,12 +245,11 @@
       </tr></tfoot>`;
 
     } else if (currentDetailType === 'date') {
-      html += '<th>消費類別</th><th>消費項目</th>';
-      html += sortableHeader('金額', 'amount');
+      html += '<th>#</th><th>消費類別</th><th>消費項目</th>' + sortableHeader('金額','amount');
       html += '</tr></thead><tbody>';
-      rows.forEach((r, idx) => {
+      rows.forEach((r, i) => {
         html += `<tr>
-          <td class="num">${idx+1}</td>
+          <td class="num">${i+1}</td>
           <td><span class="cat-tag">${escapeHtml(r.category)}</span></td>
           <td>${escapeHtml(r.item)}</td>
           <td class="amount">$${r.amount.toLocaleString()}</td>
@@ -262,13 +261,11 @@
       </tr></tfoot>`;
 
     } else if (currentDetailType === 'week') {
-      html += sortableHeader('日期', 'date');
-      html += '<th>消費類別</th><th>消費項目</th>';
-      html += sortableHeader('金額', 'amount');
+      html += '<th>#</th>' + sortableHeader('日期','date') + '<th>消費類別</th><th>消費項目</th>' + sortableHeader('金額','amount');
       html += '</tr></thead><tbody>';
-      rows.forEach((r, idx) => {
+      rows.forEach((r, i) => {
         html += `<tr>
-          <td class="num">${idx+1}</td>
+          <td class="num">${i+1}</td>
           <td>${r.date}<span class="week-tag">${r.weekName}</span></td>
           <td><span class="cat-tag">${escapeHtml(r.category)}</span></td>
           <td>${escapeHtml(r.item)}</td>
@@ -280,14 +277,12 @@
         <td class="amount subtotal-val">$${subtotal.toLocaleString()}</td>
       </tr></tfoot>`;
 
-    } else {
-      html += sortableHeader('日期', 'date');
-      html += '<th>消費類別</th><th>消費項目</th>';
-      html += sortableHeader('金額', 'amount');
+    } else { // 'search' 或全部
+      html += '<th>#</th>' + sortableHeader('日期','date') + '<th>消費類別</th><th>消費項目</th>' + sortableHeader('金額','amount');
       html += '</tr></thead><tbody>';
-      rows.forEach((r, idx) => {
+      rows.forEach((r, i) => {
         html += `<tr>
-          <td class="num">${idx+1}</td>
+          <td class="num">${i+1}</td>
           <td>${r.date}<span class="week-tag">${r.weekName}</span></td>
           <td><span class="cat-tag">${escapeHtml(r.category)}</span></td>
           <td>${escapeHtml(r.item)}</td>
@@ -301,14 +296,15 @@
     }
 
     html += '</table>';
-    tableEl.innerHTML = html;
+    document.getElementById('detail_table_div').innerHTML = html;
   }
 
   function sortableHeader(label, key) {
     const active = sortState.key === key;
-    const arrow = active ? (sortState.dir === 'desc' ? ' ▼' : ' ▲') : ' ⇅';
-    const style = active ? 'color:#1a73e8; cursor:pointer; user-select:none; white-space:nowrap;'
-                         : 'cursor:pointer; user-select:none; white-space:nowrap; color:#5a8dee;';
+    const arrow  = active ? (sortState.dir === 'desc' ? ' ▼' : ' ▲') : ' ⇅';
+    const style  = active
+      ? 'color:#1a73e8; cursor:pointer; user-select:none; white-space:nowrap;'
+      : 'cursor:pointer; user-select:none; white-space:nowrap; color:#5a8dee;';
     return `<th style="${style}" onclick="toggleSort('${key}')">${label}<span style="font-size:11px;">${arrow}</span></th>`;
   }
 
@@ -336,7 +332,7 @@
       return;
     }
     currentDetailType = 'category';
-    sortState = { key: 'date', dir: 'desc' };
+    sortState         = { key: 'date', dir: 'desc' };
     currentDetailRows = enrichedData.filter(r => r.category === category);
     showDetailContainer('🍔 包含「' + category + '」的消費細項：');
     sortAndRenderDetail();
@@ -344,11 +340,12 @@
 
   function showDateDetails(dateStr) {
     currentDetailType = 'date';
-    sortState = { key: 'amount', dir: 'desc' };
-    const weekName = dateToWeekName(dateStr);
-    const weekSuffix = weekName ? ` (${weekName})` : '';
+    sortState         = { key: 'amount', dir: 'desc' };
+    const weekName    = dateToWeekName(dateStr);
+    const weekSuffix  = weekName ? ` (${weekName})` : '';
     showDetailContainer('📅 包含「' + dateStr + weekSuffix + '」的消費細項：');
-    document.getElementById('detail_table_div').innerHTML = "<div class='no-data'>🔄 正在即時抓取「" + dateStr + "」的明細，請稍候...</div>";
+    document.getElementById('detail_table_div').innerHTML =
+      "<div class='no-data'>🔄 正在抓取「" + dateStr + "」的明細，請稍候...</div>";
 
     google.script.run
       .withSuccessHandler(function(rows) {
@@ -357,25 +354,24 @@
           return;
         }
         currentDetailRows = rows.map(r => ({
-          category: r.category,
-          item: r.item,
-          amount: r.amount,
-          date: dateStr,
-          weekName: weekName
+          category: r.category, item: r.item, amount: r.amount,
+          date: dateStr, weekName: weekName
         }));
         sortAndRenderDetail();
       })
       .withFailureHandler(function(error) {
-        document.getElementById('detail_table_div').innerHTML = "<div class='no-data' style='color:#d93025;'>⚠️ 載入明細失敗: " + error.message + "</div>";
+        document.getElementById('detail_table_div').innerHTML =
+          "<div class='no-data' style='color:#d93025;'>⚠️ 載入明細失敗: " + error.message + "</div>";
       })
       .getFilteredDateData(dateStr);
   }
 
   function showWeekDetails(weekName) {
     currentDetailType = 'week';
-    sortState = { key: 'date', dir: 'desc' };
+    sortState         = { key: 'date', dir: 'desc' };
     showDetailContainer('📊 包含歷史上「' + weekName + '」的累積消費細項：');
-    document.getElementById('detail_table_div').innerHTML = "<div class='no-data'>🔄 正在即時抓取「" + weekName + "」的明細，請稍候...</div>";
+    document.getElementById('detail_table_div').innerHTML =
+      "<div class='no-data'>🔄 正在抓取「" + weekName + "」的明細，請稍候...</div>";
 
     google.script.run
       .withSuccessHandler(function(rows) {
@@ -384,63 +380,59 @@
           return;
         }
         currentDetailRows = rows.map(r => ({
-          category: r.category,
-          item: r.item,
-          amount: r.amount,
-          date: r.date,
-          weekName: weekName
+          category: r.category, item: r.item, amount: r.amount,
+          date: r.date, weekName: weekName
         }));
         sortAndRenderDetail();
       })
       .withFailureHandler(function(error) {
-        document.getElementById('detail_table_div').innerHTML = "<div class='no-data' style='color:#d93025;'>⚠️ 載入明細失敗: " + error.message + "</div>";
+        document.getElementById('detail_table_div').innerHTML =
+          "<div class='no-data' style='color:#d93025;'>⚠️ 載入明細失敗: " + error.message + "</div>";
       })
       .getFilteredWeekData(weekName);
   }
 
+  // ══════════════════════════════════════════
+  // 【搜尋】
+  // ══════════════════════════════════════════
   function searchRecords() {
-    const keyword = document.getElementById('searchInput').value.trim();
+    const keyword  = document.getElementById('searchInput').value.trim();
     const clearBtn = document.getElementById('searchClearBtn');
     const container = document.getElementById('detailTableContainer');
-    const tableEl = document.getElementById('detail_table_div');
 
     clearBtn.style.display = keyword ? 'flex' : 'none';
 
-    if (!keyword) {
-      container.style.display = 'none';
-      return;
-    }
+    if (!keyword) { container.style.display = 'none'; return; }
 
     if (!enrichedData.length) {
       document.getElementById('detailTitle').innerText = '🔍 搜尋「' + keyword + '」的結果：';
-      tableEl.innerHTML = "<div class='no-data'>⚠️ 目前無可用資料，請重新整理頁面。</div>";
+      document.getElementById('detail_table_div').innerHTML = "<div class='no-data'>⚠️ 目前無可用資料，請重新整理頁面。</div>";
       container.style.display = 'block';
       return;
     }
 
     const matched = enrichedData.filter(r =>
       r.category.includes(keyword) ||
-      r.item.includes(keyword) ||
-      r.date.includes(keyword) ||
+      r.item.includes(keyword)     ||
+      r.date.includes(keyword)     ||
       r.weekName.includes(keyword)
     );
 
     currentDetailType = 'search';
-    sortState = { key: 'date', dir: 'desc' };
+    sortState         = { key: 'date', dir: 'desc' };
     currentDetailRows = matched;
-
     showDetailContainer('🔍 搜尋「' + keyword + '」的結果：');
 
     if (matched.length === 0) {
-      tableEl.innerHTML = "<div class='no-data'>找不到包含「" + escapeHtml(keyword) + "」的紀錄。</div>";
+      document.getElementById('detail_table_div').innerHTML =
+        "<div class='no-data'>找不到包含「" + escapeHtml(keyword) + "」的紀錄。</div>";
       return;
     }
-
     sortAndRenderDetail();
   }
 
   function clearSearch() {
-    document.getElementById('searchInput').value = '';
+    document.getElementById('searchInput').value           = '';
     document.getElementById('searchClearBtn').style.display = 'none';
     document.getElementById('detailTableContainer').style.display = 'none';
     document.getElementById('searchInput').focus();
@@ -453,11 +445,10 @@
       document.getElementById('detailTableContainer').style.display = 'block';
       return;
     }
-    document.getElementById('searchInput').value = '';
+    document.getElementById('searchInput').value           = '';
     document.getElementById('searchClearBtn').style.display = 'none';
-
     currentDetailType = 'search';
-    sortState = { key: 'date', dir: 'desc' };
+    sortState         = { key: 'date', dir: 'desc' };
     currentDetailRows = [...enrichedData];
     showDetailContainer('📋 全部消費明細（共 ' + enrichedData.length + ' 筆）');
     sortAndRenderDetail();
@@ -467,17 +458,21 @@
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
+  // ══════════════════════════════════════════
+  // 【預算更新】（已修正 ffunction 拼字錯誤）
+  // ══════════════════════════════════════════
   function toggleBudgetInput() {
-    const row = document.getElementById('budgetInputRow');
-    const isHidden = row.style.display === 'none';
-    row.style.display = isHidden ? 'flex' : 'none';
+    const row    = document.getElementById('budgetInputRow');
+    const isHide = row.style.display === 'none';
+    row.style.display = isHide ? 'flex' : 'none';
     document.getElementById('budgetMsg').innerText = '';
-    if (isHidden) document.getElementById('budgetInput').focus();
+    if (isHide) document.getElementById('budgetInput').focus();
   }
 
   function submitBudget() {
-    const val = document.getElementById('budgetInput').value.trim();
-    const msgEl = document.getElementById('budgetMsg');
+    const val       = document.getElementById('budgetInput').value.trim();
+    const msgEl     = document.getElementById('budgetMsg');
+    const submitBtn = document.getElementById('submitBudgetBtn');
 
     if (!val || isNaN(parseFloat(val)) || parseFloat(val) <= 0) {
       msgEl.style.color = '#d93025';
@@ -485,31 +480,188 @@
       return;
     }
 
+    // 🔒 防連點
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerText = '更新中...';
+      submitBtn.style.background = '#aaa';
+    }
     msgEl.style.color = '#888';
-    msgEl.innerText = '更新中...';
+    msgEl.innerText = '';
+
+    const badge = document.getElementById('ai-status-badge');
+    const text  = document.getElementById('ai-response-text');
+    if (badge) {
+      badge.innerText = '重算中...';
+      badge.style.background = '#e2e8f0';
+      badge.style.color = '#475569';
+    }
+    if (text) text.innerText = '⏳ 偵測到預算變更！管家正在重新翻閱您的帳本，請稍候...';
 
     google.script.run
       .withSuccessHandler(function(result) {
+        // 🔓 無論成功失敗都解鎖
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerText = '確認';
+          submitBtn.style.background = '#1a73e8';
+        }
+
         if (result.success) {
           msgEl.style.color = '#27ae60';
           msgEl.innerText = '✅ 已更新為 $' + result.budget.toLocaleString();
           document.getElementById('budgetInputRow').style.display = 'none';
           document.getElementById('budgetInput').value = '';
+
           if (chartDataPayload) {
-            const oldExpense = chartDataPayload.budgetInfo.totalExpense;
-            chartDataPayload.budgetInfo.budget = result.budget;
-            chartDataPayload.budgetInfo.usePercent = (oldExpense / result.budget) * 100;
+            chartDataPayload.budgetInfo.budget     = result.budget;
+            chartDataPayload.budgetInfo.usePercent = result.usePercent;
+            chartDataPayload.aiResponse            = result.aiResponse;
             renderBudgetCard(chartDataPayload.budgetInfo);
+            displayAiAdvice({
+              budgetInfo : { usePercent: result.usePercent },
+              aiResponse : result.aiResponse
+            });
           }
         } else {
           msgEl.style.color = '#d93025';
           msgEl.innerText = '❌ ' + result.message;
+          if (badge) badge.innerText = '審閱中';
         }
       })
       .withFailureHandler(function(err) {
+        // 🔓 失敗也解鎖
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerText = '確認';
+          submitBtn.style.background = '#1a73e8';
+        }
         msgEl.style.color = '#d93025';
         msgEl.innerText = '❌ 更新失敗: ' + err.message;
+        if (badge) {
+          badge.innerText = '錯誤';
+          badge.style.background = '#fee2e2';
+          badge.style.color = '#ef4444';
+        }
+        if (text) text.innerText = '❌ 因預算更新失敗，無法重新生成 AI 報告。';
       })
       .updateBudget(val);
+  }
+
+  // ══════════════════════════════════════════
+  // 【AI 看板】渲染
+  // ══════════════════════════════════════════
+  function displayAiAdvice(payload) {
+    // 1. 安全檢查
+    if (!payload || !payload.aiResponse) {
+      document.getElementById('ai-response-text').innerText = "🤖 管家正在看股票，晚點再聊。";
+      return;
+    }
+
+    // 2. 將純文字塞入文字框中
+    document.getElementById('ai-response-text').innerText = payload.aiResponse;
+
+    // 3. 隱藏 z-turbo 圖片標籤
+    const imgEl = document.getElementById('ai-butler-img');
+    if (imgEl) {
+      imgEl.style.display = 'none';
+    }
+
+    // 4. 🎨 【精準動態變色】加上安全防護防死當
+    let usePercent = 0;
+    if (payload.budgetInfo && typeof payload.budgetInfo.usePercent === 'number') {
+      usePercent = payload.budgetInfo.usePercent;
+    } else if (typeof payload.usePercent === 'number') {
+      usePercent = payload.usePercent;
+    }
+    
+    const aiCard = document.getElementById('ai-card'); 
+    const badgeEl = document.getElementById('ai-status-badge');
+
+    if (usePercent > 90) {
+      if (aiCard) {
+        aiCard.style.borderLeft = "6px solid #ef4444"; 
+        aiCard.style.background = "#fef2f2"; 
+      }
+      if (badgeEl) {
+        badgeEl.innerText = "🚨 預算炸裂";
+        badgeEl.style.background = "#fee2e2";
+        badgeEl.style.color = "#ef4444";
+      }
+    } else if (usePercent >= 50 && usePercent <= 90) {
+      if (aiCard) {
+        aiCard.style.borderLeft = "6px solid #f59e0b"; 
+        aiCard.style.background = "#fffbeb"; 
+      }
+      if (badgeEl) {
+        badgeEl.innerText = "⚠️ 財務警告";
+        badgeEl.style.background = "#fef3c7";
+        badgeEl.style.color = "#d97706";
+      }
+    } else {
+      if (aiCard) {
+        aiCard.style.borderLeft = "6px solid #3b82f6"; 
+        aiCard.style.background = "#eff6ff"; 
+      }
+      if (badgeEl) {
+        badgeEl.innerText = "✨ 進度安全";
+        badgeEl.style.background = "#dbeafe";
+        badgeEl.style.color = "#1d4ed8";
+      }
+    }
+  }
+
+  // ══════════════════════════════════════════
+  // 【AI 看板】手動觸發重新審閱
+  // ══════════════════════════════════════════
+  function refreshAiAdvice() {
+    const btn   = document.getElementById('refreshAdviceBtn');
+    const badge = document.getElementById('ai-status-badge');
+    const text  = document.getElementById('ai-response-text');
+
+    // 🔒 防連點：鎖定按鈕
+    if (btn) {
+      btn.disabled = true;
+      btn.innerText = '⏳ 審閱中...';
+    }
+    if (badge) {
+      badge.innerText = '重算中...';
+      badge.style.background = '#e2e8f0';
+      badge.style.color = '#475569';
+    }
+    if (text) {
+      text.innerText = '⏳ 管家正在重新翻閱您的帳本，請稍候...';
+    }
+
+    google.script.run
+      .withSuccessHandler(function(allData) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = '🔄 請管家重新審閱';
+        }
+        if (!allData || !allData.aiResponse) {
+          if (text) text.innerText = '🤖 管家今天請假，請稍後再試。';
+          return;
+        }
+        if (chartDataPayload) {
+          chartDataPayload.aiResponse = allData.aiResponse;
+          chartDataPayload.budgetInfo = allData.budgetInfo;
+          renderBudgetCard(allData.budgetInfo);
+        }
+        displayAiAdvice(allData);
+      })
+      .withFailureHandler(function(err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = '🔄 請管家重新審閱';
+        }
+        if (badge) {
+          badge.innerText = '錯誤';
+          badge.style.background = '#fee2e2';
+          badge.style.color = '#ef4444';
+        }
+        if (text) text.innerText = '❌ 管家連線失敗: ' + err.message;
+      })
+      .getChartData();
   }
 </script>
