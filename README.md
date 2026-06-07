@@ -17,55 +17,15 @@
 1. 由捷徑輸入
 2. 輸入至google試算表中
 3. 使用html輸出現有的資料
+4. 利用gemini API進行建議
 
 
-此作品的流程圖如下(視覺化詳見 file中的"流程圖"):
+此專案共有四個流程
 
-    > subgraph User [1. 使用者 User]
-       A[iOS 捷徑 <br>輸入金額與項目]:::user
-       B[瀏覽器儀表板 <br>讀取網頁與進行搜尋]:::user
-    end
-
-     %% 2. 系統中樞
-    subgraph System [2. 系統 System - Google Apps Script]
-       C{"後端 Code.gs <br>中央調度中心"}:::system
-       D["前端 Chart.html <br>網頁渲染與搜尋引擎"]:::system
-     end
-    > %% 3. 資料來源
-    > subgraph DataSource [3. 資料來源 Data Source]
-    >    E[("Google Sheets 試算表 <br>工作表：『記帳明細』")]:::data
-    > end
-
-    > %% 4. 輸出呈現
-    > subgraph Output [4. 輸出 Output - 圖表與明細]
-    >    F[① 本月預算/進度條 <br>防禦警報機制]:::output
-    >    G[② 多視角統計圖表 <br>圓餅/趨勢/星期柱狀]:::output
-    >    H[③ 排序與篩選表格 <br>多關鍵字 AND 邏輯]:::output
-    > end
-
-    > %% --- 數據流向關係連線 ---
-    > VideoNode -.->|實作參考| A
-    
-    > %% (A) 寫入流 (POST)
-    > A -->|1. 發送 HTTP POST JSON| C
-    > C -->|2. doPost 解析數據| E
-
-    > %% (B) 讀取流 (GET)
-    > B -->|1. 發送 HTTP GET 請求| C
-    > C -->|2. doGet 載入並初始化| D
-    
-    > %% (C) 前後端異步數據交換 (RPC)
-    > D -->|3. google.script.run| C
-    > C -->|4. 撈取原始記帳列陣| E
-    > E -->|5. 回傳原始資料| C
-    > C -->|6. 回傳資料 Payload| D
-
-    > %% (D) 前端本地渲染與輸出
-    > D -->|加工清洗 enrichedData| F
-    > D -->|Google Charts API 畫圖| G
-    > D -->|本地高速布林篩選| H
-
-
+>日常自動記帳
+>資料視覺化
+>預算調整
+>AI檢查與提醒
 
 ## 記帳系統安裝說明如下：
 
