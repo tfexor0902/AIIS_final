@@ -1,0 +1,66 @@
+``` mermaid
+flowchart TD
+
+%% ═════════════════════════════════════════════
+%% 🧱 核心五層架構 - 縱向分層
+%% ═════════════════════════════════════════════
+L1 ~~~ L2 ~~~ L3 ~~~ L4 ~~~ L5
+
+subgraph L1 ["① 使用者端 (User Interface)"]
+UI_Client["📱 行動裝置 / 網頁前端<br>(UI 互動、POST 請求、選單觸發)"]
+end
+
+subgraph L2 ["② 系統處理層 (Google Apps Script)"]
+GAS_Core["⚙️ GAS 核心控制模組<br>(doPost / doGet / 監聽事件)"]
+GAS_AI["🧠 AI 顧問組裝模組<br>(askGeminiAdvisor)"]
+end
+
+subgraph L3 ["③ AI 模型核心 (LLM Service)"]
+Gemini_Model[/"🤖 Gemini 2.5 Flash API<br>(generateContent)"/]
+end
+
+subgraph L4 ["④ 資料來源層 (Google Sheets)"]
+Sheets_DB[("📁 雲端試算表資料庫<br>(明細檔、財務數據、預算配置)")]
+end
+
+subgraph L5 ["⑤ 前端輸出 (Presentation Layer)"]
+Output_View["📊 動態儀表板<br>(Google Charts JS 互動圖表)"]
+Output_AI["💡 AI 財務決策卡片<br>(點評與建議)"]
+end
+
+%% ═════════════════════════════════════════════
+%% 🔄 乾淨清晰的資料流 (完全不打結)
+%% ═════════════════════════════════════════════
+
+%% 1. 記帳與預算流
+UI_Client -->|1. 記帳與預算變更| GAS_Core
+GAS_Core -->|2. 寫入/更新數據| Sheets_DB
+
+%% 2. 視覺化圖表流
+UI_Client -->|3. 請求儀表板| GAS_Core
+Sheets_DB -->|4. 讀取財務數據| GAS_Core
+GAS_Core -->|5. 渲染圖表| Output_View
+
+%% 3. AI 審查流
+UI_Client -.->|6. 觸發 AI 檢視| GAS_AI
+Sheets_DB -->|7. 插入財務快照| GAS_AI
+GAS_AI <-->|8. 傳送 Prompt / 回傳分析| Gemini_Model
+Gemini_Model -->|9. 輸出審查建議| Output_AI
+
+%% ═════════════════════════════════════════════
+%% 🎨 簡潔專業配色
+%% ═════════════════════════════════════════════
+classDef user     fill:#F9F9F6,stroke:#888780,color:#444441,stroke-width:2px;
+classDef system   fill:#F0F7FF,stroke:#378ADD,color:#0C447C,stroke-width:2px;
+classDef model    fill:#F5F4FF,stroke:#7F77DD,color:#3C3489,stroke-width:2px;
+classDef source   fill:#EDFAF5,stroke:#1D9E75,color:#085041,stroke-width:2px;
+classDef output   fill:#FFF5F2,stroke:#D85A30,color:#712B13,stroke-width:2px;
+classDef layerBox fill:#FAFAFA,stroke:#E0E0E0,stroke-width:1px,font-weight:bold,color:#555555;
+
+class UI_Client user;
+class GAS_Core,GAS_AI system;
+class Gemini_Model model;
+class Sheets_DB source;
+class Output_View,Output_AI output;
+
+class L1,L2,L3,L4,L5 layerBox
