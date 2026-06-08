@@ -4,6 +4,7 @@
 const SPREADSHEET_ID = '你的id';
 const SHEET_NAME     = '記帳明細';
 const BUDGET_CELL    = 'F2';
+const Gemini_API     = '你的API_Key'
 
 
 /**
@@ -397,7 +398,7 @@ function askGeminiAdvisor(totalExpense, remaining, usePercent, categoryText) {
   }
 
   // ⚠️ 這裡維持使用你原有的金鑰
-  const apiKey = "你的Google API"; 
+  const apiKey = Gemini_API; 
   const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
 
   // 建立量身打造的 Prompt 語境（限制繁體中文與回傳格式）
