@@ -100,10 +100,7 @@
 >>> 以上便是安裝教學，之後就可以正式使用記帳及視覺化系統了
 
 > 安裝操作影片如下:
-> 
-
-> 如何做成遠端?:
-> https://youtu.be/WPa6X6bqwIg
+> https://youtu.be/NBz4CRaJHAo
 
 ------------------------------------------------------------------------------------------------------------------------------------
 
@@ -112,8 +109,7 @@
 > https://www.icloud.com/shortcuts/c3b6b0ab1c7543e584ea8eba8e825bf4
 
 > 實際操作案例如下:
-> https://youtube.com/shorts/1Mytk7BRaxM?si=SNIGCaTwgNnxTvWq
-
+> https://youtube.com/shorts/do-RegDL92w?feature=share
 ## 記帳系統執行
 
 >>> 本系統主要有以下四個前後端互動流程
