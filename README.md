@@ -57,7 +57,7 @@
     
     填入後端邏輯：將預設的 Code.gs 內容全部清空，並貼上你的 Code.gs.js 程式碼。
     
-    更換試算表 ID：在 Code.gs 內找到 SpreadsheetApp.openById('...')，將括號內貼上你剛剛複製的個人試算表 ID。
+    更換試算表 ID：修改全域變數的個人試算表 ID。
     
     建立前端網頁：在編輯器左側點擊 「+」（新增檔案）> 選擇 「HTML」，並命名為 Chart（系統會自動產生 Chart.html）。
     
